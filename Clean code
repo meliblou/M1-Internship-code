@@ -1,0 +1,589 @@
+import numpy as np
+import os
+import readcorr as r #library I created to generate the correlators bootstrap samples
+import analysisbin as ab #library I created to perpetuate the bootstrap analysis on the ratios
+import bootstrap as b #average and std for bootstrap samples
+import CovM #library to compute the covariance matrix using Cholesky decomposition (unused)
+
+
+def array_print(tab):# to print 1D array in terminal
+    print('[' + str(tab[0]))
+    for k in range(1, len(tab)-1):
+        print(',' + str(tab[k]))
+    print(',' + str(tab[len(tab)-1]) + ']')
+    
+def matrix_print(tab):# to print 2D array in terminal
+    print('[')
+    for l in range(tab.shape[0]):
+        array_print(tab[l,:])
+    print(']')
+
+
+pseudo = np.loadtxt('pseudo_clean').astype(int) #pseudo random number generator
+
+dtsum = input('Enter the dtsum value :')
+
+name_list= ['mom1_avg123-4', 'mom2_avg123-4', 'mom3_avg123-4', 'mom4_avg123-4'] #corresponding to the 4 momentum norm values
+
+
+mom_list= [["+1+0+0_+0+0+0_-1+0+0", "-1+0+0_+0+0+0_+1+0+0","+0+1+0_+0+0+0_+0-1+0", "+0-1+0_+0+0+0_+0+1+0", "+0+0+1_+0+0+0_+0+0-1", "+0+0-1_+0+0+0_+0+0+1"], ["+1+0+1_+0+0+0_-1+0-1", "-1+0+1_+0+0+0_+1+0-1", "+1+0-1_+0+0+0_-1+0+1","-1+0-1_+0+0+0_+1+0+1", "+1+1+0_+0+0+0_-1-1+0" , "-1+1+0_+0+0+0_+1-1+0", "+1-1+0_+0+0+0_-1+1+0" , "-1-1+0_+0+0+0_+1+1+0" ,  "+0+1+1_+0+0+0_+0-1-1", "+0-1+1_+0+0+0_+0+1-1", "+0-1-1_+0+0+0_+0+1+1", "+0+1-1_+0+0+0_+0-1+1"] , ["+1+1+1_+0+0+0_-1-1-1",  "+1+1-1_+0+0+0_-1-1+1", "+1-1+1_+0+0+0_-1+1-1", "-1+1+1_+0+0+0_+1-1-1", "+1-1-1_+0+0+0_-1+1+1", "-1-1+1_+0+0+0_+1+1-1",  "-1+1-1_+0+0+0_+1-1+1", "-1-1-1_+0+0+0_+1+1+1"], [ "+2+0+0_+0+0+0_-2+0+0", "-2+0+0_+0+0+0_+2+0+0","+0+2+0_+0+0+0_+0-2+0", "+0-2+0_+0+0+0_+0+2+0", "+0+0+2_+0+0+0_+0+0-2", "+0+0-2_+0+0+0_+0+0+2"]]
+
+
+tensor = ['T14', 'T24', 'T34']
+
+mass_list = ['0.44037', '0.55046', '0.68808'] #in the case of the sub data set (4.17,mq = 0.0070), here are the bottom quark mass
+
+mondico = dict() # I create this dictionary to store the bootstrap samples of the correlators for different momenta and bottom mass (that will be the key in the dictionnary in the format 'mass_momentum')
+
+os.chdir('/home/mfaur/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400/tsrc00/2pt/DD')
+
+
+file = 'msn_2pt_pp_m0.44037_0.01200_theta+0.0000+0.0000+0.0000_+0.0000+0.0000+0.0000_mom+0+0+0_smr10_{id}'
+end = r.generate_end_short()
+DD_0_re, DD_0_im = r.oneformat(file, end, dtsum+1)
+DD_0 = DD_0_re + 1j*DD_0_im
+# these four command lines allow to extract the bootstrap samples of the D decay two point correlator
+
+
+
+os.chdir('/home/mfaur/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400/tsrc00/3pt/dtsum{dir1}/V4'.format(dir1 = dtsum))
+ 
+for k in range(len(mass_list)):
+# For each bottom quark mass we extract the D to B meson decay three point correlator bootstrap samples
+    file = 'msn_3pt_p_p_v4_m0.01200_{mass}_0.44037_theta+0.0000+0.0000+0.0000_+0.0000+0.0000+0.0000_+0.0000+0.0000+0.0000_mom+0+0+0_+0+0+0_+0+0+0'.format(mass= mass_list[k])
+    file = file +'_smr11_{id}'
+    D2B_0_re, D2B_0_im = r.oneformat_3pt_thin(file, end, dtsum)
+    D2B_0 = D2B_0_re + 1j*D2B_0_im
+    mondico['{n}_0'.format(n = mass_list[k][2])] = D2B_0
+    
+
+
+for i in range (len(mom_list)):
+# For each momentum and bottom quark mass we extract the D decay two point correlator bootstrap samples and the D to B decay three point correlator bootstrap samples.
+    DD_p = 0
+    for k in range(len(mass_list)):
+        mondico['{n}'.format(n = mass_list[k][2])] = 0
+    
+    for t in tensor:
+        for mom_curr in mom_list[i]:
+            if mom_curr[int(t[1])*2-1] != '0': #if we have T12, we enter the if loop iff the current momentum 'mom_curr' has a non zero y coordinate
+
+
+                
+                os.chdir('/home/mfaur/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400/tsrc00/2pt/DD')
+                file = 'msn_2pt_pp_m0.44037_0.01200_theta+0.0000+0.0000+0.0000_+0.0000+0.0000+0.0000_mom{mom_in}'.format(mom_in = mom_curr[:6])
+                file = file + '_smr10_{id}'
+                DD_p_re, DD_p_im = r.oneformat(file, end, dtsum +1)
+                DD_p = DD_p_re + 1j*DD_p_im + DD_p
+                
+
+                
+                for k in range(len(mass_list)):
+                    os.chdir('/home/mfaur/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400/tsrc00/3pt/dtsum{dir1}/{dir2}'.format(dir1 = dtsum, dir2 = t))
+                    file = 'msn_3pt_p_p_{matrix_low}_m0.01200_{mass}_0.44037_theta+0.0000+0.0000+0.0000_+0.0000+0.0000+0.0000_+0.0000+0.0000+0.0000_mom{mom_in}'.format(matrix_low = t.lower(), mom_in = mom_curr, mass = mass_list[k])
+                    file = file + '_smr11_{id}'
+                    D2B_p_re, D2B_p_im = r.oneformat_3pt_thin(file, end, dtsum)
+                   
+                    if mom_curr[int(t[1])*2-2] == '+': #check the sign
+                        mondico['{n}'.format(n = mass_list[k][2])] = D2B_p_re + 1j*D2B_p_im + mondico['{n}'.format(n = mass_list[k][2])]
+                    else :
+                        mondico['{n}'.format(n = mass_list[k][2])] = -D2B_p_re + 1j*D2B_p_im + mondico['{n}'.format(n = mass_list[k][2])]
+                    
+
+
+
+    DD_p = DD_p/(len(mom_list[i])*len(tensor))
+#we finally average over the different momenta sharing the same norm, and the different tensor terms equivalent under Lorentz covariance
+
+
+    for l in range(len(mass_list)):
+#for each bottom mass, we compute the ratio R2
+        current = mondico['{n}'.format(n = mass_list[l][2])]
+        current0 = mondico['{n}_0'.format(n = mass_list[l][2])]
+        current = current/(len(mom_list[i])*len(tensor))
+
+        
+        R = ab.R(DD_p, current0, current, DD_0, dtsum +1, pseudo, 25)
+        R = R[:,0] #the two other column are not interesting (complex sigma, wrongly computed, and biais)
+
+        R_c, sigmaR, sigmaI = ab.Rchi2_3(DD_p, current0, current, DD_0, dtsum +1, pseudo, 25)
+        R_c = np.array(R_c, dtype=complex)
+
+        os.chdir('/xwork18/scqcd/mfaur/NewSigma/R/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400/dtsum{dir1}'.format(dir1 = dtsum))
+
+        try :
+            os.mkdir('{dir2}'.format(dir2 = name_list[i]))
+        except:
+            print('already exists - {dir2}'.format(dir2 = name_list[i]))
+
+        os.chdir('/xwork18/scqcd/mfaur/NewSigma/R/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400/dtsum{dir1}/{dir2}'.format(dir1 = dtsum, dir2 = name_list[i]))
+
+        print("That's R/sigma.real-imag for mb={n}, from {dir1} \n".format(dir1 = name_list[i], n = mass_list[l]))
+        array_print(R)
+        array_print(sigmaR)
+        array_print(sigmaI)
+
+
+        np.savetxt('R_{n}'.format(n = mass_list[l][2]), R)
+
+
+        M5 = CovM.CovM_simple(R_c.real, dtsum +1, 5000)
+        if not(CovM.isPD(M5)):
+            M5 = CovM.nearestPD(M5)
+        M5, N5_cho = CovM.inverse(M5, dtsum)
+
+        print('True if the matrix is correctly inversed using Cholesky decomposition - M : ', np.allclose(np.dot(N5_cho, M5), np.eye(dtsum+1)))
+
+
+
+        MI5 = CovM.CovM_simple(R_c.imag, dtsum +1, 5000)
+        if not(CovM.isPD(MI5)):
+            MI5 = CovM.nearestPD(MI5)
+        MI5, NI5_cho = CovM.inverse(MI5, dtsum)
+
+        print('True if the matrix is correctly inversed using Cholesky decomposition - MI : ', np.allclose(np.dot(NI5_cho, MI5), np.eye(dtsum+1)))
+
+
+        try :
+            os.mkdir('chi2_{n}'.format(n=mass_list[l][2]))
+        except :
+            print('folder already exists - chi2{n}'.format(n=mass_list[l][2]))
+
+
+        os.chdir('/xwork18/scqcd/mfaur/NewSigma/R/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400/dtsum{dir1}/{dir2}/chi2_{n}'.format(dir1 = dtsum, dir2 = name_list[i], n = mass_list[l][2]))
+
+        np.savetxt('sample_sigma', sigmaR)
+
+        np.savetxt('sample_cov_inv', N5_cho.flatten())
+
+        np.savetxt('sample_sigma_im', sigmaI)
+
+        np.savetxt('sample_cov_inv_im', NI5_cho.flatten())
+
+        np.savetxt('samples_total', R_c.real)
+
+        np.savetxt('samples_total_im', R_c.imag)
+
+        for k in range(5000):
+            file = 'sample_{id}'
+            M = np.array((list(R_c.real[:,k]), list(R_c.imag[:,k])))
+            np.savetxt(file.format(id=k), M.transpose())
+
+        os.chdir('/xwork18/scqcd/mfaur/NewSigma/R/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400')
+
+
+#ultimate code mix, to create the dtsum mixed ratio files that will be fitted
+
+import numpy as np
+import os
+import readcorr as r
+import analysisbin as ab
+import bootstrap as b
+import CovM
+
+def array_print(tab):#1D array
+    print('[' + str(tab[0]))
+    for k in range(1, len(tab)-1):
+        print(',' + str(tab[k]))
+    print(',' + str(tab[len(tab)-1]) + '],')
+    
+def matrix_print(tab):#1D array
+    print('[')
+    for l in range(tab.shape[0]):
+        array_print(tab[l,:])
+    print(']')
+
+mass = [4,5,6]
+
+
+
+tab_cut = input('tuples of slicing values to cut the samples on, for the real part // dtsum :')
+tab_cut_im = input('tuples of slicing values to cut the samples on, for the imaginary part // dtsum :')
+#example [(1, -1), (1, -1), (1, -1), (1, -1)]
+#In our case, we cut the time range by removing the first and last 6 points for this data set
+# For other data set, we remove the same quantity of points, weighted by the lattice spacing
+
+name = input('Name of the file to put the results in (mix) :')
+
+#cov_bool = input('Do you want to compute cov chi2 : (0 or 1)')
+
+dtsum = np.array([12, 16, 22, 26])
+
+
+os.chdir('/xwork18/scqcd/mfaur/NewSigma/R/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400/mix')
+
+try:
+    os.mkdir(name)
+    
+except:
+    print('{mom} already exists'.format(mom = name))
+
+
+
+for m in mass:
+    os.chdir('/xwork18/scqcd/mfaur/NewSigma/R/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400/mix/{mom}'.format(mom=name))
+    try:
+        os.mkdir('chi2_{n}'.format(n=m))
+        #print('file created')
+    except:
+        print('chi2_{n} already exists'.format(n=m))
+
+
+
+    new_R = []
+    new_R_im = []
+
+#We run through the bootstrap samples to assemble the different dtsum ratio into one file, and to compute the standard deviation to the 5000 samples
+
+    for k in range(5000):
+        new_sample = []
+        new_sample_im = []
+        sigma = []
+        sigma_im = []
+        for i in range(len(dtsum)):
+            os.chdir('/xwork18/scqcd/mfaur/NewSigma/R/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400/dtsum{dt_in}/{mom}/chi2_{n}'.format(dt_in = dtsum[i], mom = name, n = m))
+            if k == 0 : #extract all the sigmas
+                print(os.getcwd())
+                file= 'sample_sigma'
+                sample = np.loadtxt(file)
+                re = list(sample[tab_cut[i][0]:tab_cut[i][1]])
+                sigma = sigma + re
+                file= 'sample_sigma_im'
+                sample = np.loadtxt(file)
+                im = list(sample[tab_cut_im[i][0]:tab_cut_im[i][1]])
+                sigma_im = sigma_im + im
+            file = 'sample_{num}'
+            sample = np.loadtxt(file.format(num = k))
+            re = list(sample[tab_cut[i][0]:tab_cut[i][1],0])
+            im = list(sample[tab_cut_im[i][0]:tab_cut_im[i][1],1])
+            new_sample = new_sample + re
+            new_sample_im = new_sample_im + im
+
+
+        os.chdir('/xwork18/scqcd/mfaur/NewSigma/R/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400/mix/{mom}/chi2_{n}'.format(mom = name, n = m))
+        np.savetxt('sample_{num}'.format(num=k), np.array(new_sample))
+        np.savetxt('sample_im_{num}'.format(num=k), np.array(new_sample_im))
+        new_R.append(np.array(new_sample)) # to get 5000*dt tabs
+        new_R_im.append(np.array(new_sample_im))
+        if k == 0:
+            dt = len(sigma)
+            dt_im = len(sigma_im)
+            np.savetxt('sample_sigma', np.array(sigma))
+            np.savetxt('sample_sigma_im', np.array(sigma_im))
+
+
+    new_R = np.array(new_R)
+    new_R_im = np.array(new_R_im)
+    print(new_R.shape, new_R_im.shape)
+
+#We compute the covariance matrix to the bootstrap samples if we want to use it in the chi2 minimization algorithms
+    M = CovM.CovM_simple(new_R, dt, 5000)
+    #matrix_print(M)
+    if not(CovM.isPD(M)):
+        M2 = CovM.nearestPD(M)
+    M3, N_cho = CovM.inverse(M2, dtsum = dt-1)
+    #matrix_print(M)
+    print('True if the matrix is correctly inversed using Cholesky decomposition - M: ', np.allclose(np.dot(N_cho, M3), np.eye(dt)))
+
+    MI = CovM.CovM_simple(new_R_im, dt_im, 5000)
+    #matrix_print(MI)
+    if not(CovM.isPD(MI)):
+        MI2 = CovM.nearestPD(MI)
+    MI3, NI_cho = CovM.inverse(MI2, dtsum = dt_im-1)
+    #matrix_print(MI)
+    print('True if the matrix is correctly inversed using Cholesky decomposition - MI : ', np.allclose(np.dot(NI_cho, MI3), np.eye(dt_im)))
+
+    os.chdir('/xwork18/scqcd/mfaur/NewSigma/R/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400/mix/{mom}/chi2_{n}'.format(mom = name, n=m))
+
+    np.savetxt('sample_cov', M3.flatten())
+
+    np.savetxt('sample_cov_inv', N_cho.flatten())
+
+    np.savetxt('samples_total', new_R)
+    
+    np.savetxt('samples_total_im', new_R_im)
+    
+    np.savetxt('sample_cov_im', MI3.flatten())
+
+    np.savetxt('sample_cov_inv_im', NI_cho.flatten())
+
+  
+#chi2 on python
+
+
+#We compute hT for a given data set + a given mb mass
+
+import os
+import numpy as np
+from tqdm import tqdm
+from scipy.optimize import curve_fit
+
+file = input('Data set name : ')
+file_ED = input('name of the file where we find the energy for D meson (mom1) : ')
+file_EB = input('name of the file where we find the energy for B meson  : ')
+
+file_hp = input('name of the file where we find h+(w=1) : ')
+mass_in = int(input('mass name : '))
+L = int(input('L value : '))
+dtsum1 = input('dtsum1 : ')
+dtsum2 = input('dtsum2 : ')
+dtsum3 = input('dtsum3 : ')
+dtsum4 = input('dtsum4 : ')
+
+dtsums = [int(dtsum1), int(dtsum2), int(dtsum3), int(dtsum4)]
+cut = input('cut : ')
+cut = int(cut)
+
+os.system('sshfs mfaur@scbc2fe.kek.jp:/xwork18/scqcd/mfaur/NewSigma/R/{dataset}/mix /Users/melissafaur/Desktop/mom1'.format(dataset = file))
+
+
+os.chdir('/Users/melissafaur/Desktop/mom1/Bootstrap')
+
+#os.system('ls')
+
+#In the sub sub data set in question, for a given momentum (here norm "1") we upload in the code the energy values of the D and B meson from files at disposal in the work station, created by T. Kaneko
+
+tab = np.loadtxt(file_ED)
+
+deltaED = tab[1:,9]-tab[1:,7]
+
+tab = np.loadtxt(file_EB)
+
+deltaEB = tab[1:,9]-tab[1:,7]
+
+tab = np.loadtxt(file_hp)
+
+hptab = tab[1:, -1]
+MBtab = tab[1:, 3]
+MDtab = tab[1:, 4]
+Mpitab = tab[1:,1]
+MKtab = tab[1:,2]
+
+os.chdir('/Users/melissafaur/Desktop/mom1/mom1_avg123-4/chi2_{mass}'.format(mass=mass_in))
+
+
+tab = np.loadtxt('samples_total')
+sig = np.loadtxt('sample_sigma')
+
+
+time_mask = list(np.arange(dtsums[0]+1)[cut: -cut]) + list(np.arange(dtsums[1]+1)[cut: -cut] + dtsums[0]+1) + list(np.arange(dtsums[2]+1)[cut: -cut] + dtsums[0]+1 + dtsums[1]+1) + list(np.arange(dtsums[3]+1)[cut: -cut] +dtsums[0]+1 +  dtsums[1]+1 +  dtsums[2]+1 )
+
+newt = []
+newsig = []
+for k in range(5000):
+    newt.append(list(tab[k,time_mask]))
+newsig = sig[time_mask]
+tab.shape
+
+newt = np.array(newt)
+newsig = np.array(newsig)
+
+
+hT = []
+
+wtab = []
+
+# We fit all the bootstrap samples with the same function, while carefully considering the right bootstrap energy values
+    
+for k in tqdm(range(5000)):
+    E = deltaED[k]
+    Ep = deltaEB[k]
+    MB = MBtab[k]
+    MD = MDtab[k]
+    hp = hptab[k]
+    mom = 2*np.pi/L
+    q2 = (MB - np.sqrt(MD**2 + mom**2))**2 - mom**2
+    w = (MB**2 + MD**2 - q2)/(2*MD*MB) #book HQphysics page 66
+    @np.vectorize
+    def fit(x, R,A,B):
+        if x in list(np.arange(dtsums[0]+1)[cut: -cut]):
+            return R + A*np.exp(-E*x)+B*np.exp(-Ep*(dtsums[0]-x))
+        elif x in list(np.arange(dtsums[1]+1)[cut: -cut] + dtsums[0]+1):
+            return R + A*np.exp(-E*(x-(dtsums[0]+1)))+B*np.exp(-Ep*(dtsums[1]-x + dtsums[0]+1))
+        elif x in list(np.arange(dtsums[2]+1)[cut: -cut] + dtsums[0]+1 + dtsums[1]+1):
+            return R + A*np.exp(-Ep*(x-(dtsums[0]+1 + dtsums[1]+1)))+B*np.exp(-Ep*(dtsums[2]-x + dtsums[0]+1 + dtsums[1]+1))
+        else:
+            return R + A*np.exp(-E*(x-(dtsums[0]+1 + dtsums[1]+1 + dtsums[2]+1)))+B*np.exp(-Ep*(dtsums[3]-x+dtsums[0]+1 + dtsums[1]+1 + dtsums[2]+1))
+    var, Cov = curve_fit(fit, time_mask, newt[k,:],  p0 = [0,0,0], sigma = newsig, absolute_sigma = True, maxfev = 5000)
+    hT.append(-var[0]*L*MD*hp/np.pi)
+    wtab.append(w)
+
+print('hT avg value for mom1 :', np.array(hT).mean(), np.array(hT).std())
+    
+os.chdir('/Users/melissafaur/Desktop/Data_analysis/Results')
+
+
+np.savetxt('{name}-{mass}-{mom}'.format(name=file, mass=mass_in, mom=1), (hT, wtab, Mpitab, np.sqrt(2*MKtab**2 - Mpitab**2)))
+
+
+hT = []
+
+wtab = []
+
+file_ED = input('name of the file where we find the energy for D meson (mom2) : ')
+
+os.chdir('/Users/melissafaur/Desktop/mom1/Bootstrap')
+
+tab = np.loadtxt(file_ED)
+deltaED = tab[1:,9]-tab[1:,7]
+
+os.chdir('/Users/melissafaur/Desktop/mom1/mom2_avg123-4/chi2_{mass}'.format(mass=mass_in))
+
+
+tab = np.loadtxt('samples_total')
+sig = np.loadtxt('sample_sigma')
+
+newt = []
+newsig = []
+for k in range(5000):
+    newt.append(list(tab[k,time_mask]))
+newsig = sig[time_mask]
+tab.shape
+
+newt = np.array(newt)
+newsig = np.array(newsig)
+
+for k in tqdm(range(5000)):
+    E = deltaED[k]
+    Ep = deltaEB[k]
+    MB = MBtab[k]
+    MD = MDtab[k]
+    hp = hptab[k]
+    mom = np.sqrt(2)*2*np.pi/L
+    q2 = (MB - np.sqrt(MD**2 + mom**2))**2 - mom**2
+    w = (MB**2 + MD**2 - q2)/(2*MD*MB) #book HQphysics page 66
+    @np.vectorize
+    def fit(x, R,A,B):
+        if x in list(np.arange(dtsums[0]+1)[cut: -cut]):
+            return R + A*np.exp(-E*x)+B*np.exp(-Ep*(dtsums[0]-x))
+        elif x in list(np.arange(dtsums[1]+1)[cut: -cut] + dtsums[0]+1):
+            return R + A*np.exp(-E*(x-(dtsums[0]+1)))+B*np.exp(-Ep*(dtsums[1]-x + dtsums[0]+1))
+        elif x in list(np.arange(dtsums[2]+1)[cut: -cut] + dtsums[0]+1 + dtsums[1]+1):
+            return R + A*np.exp(-Ep*(x-(dtsums[0]+1 + dtsums[1]+1)))+B*np.exp(-Ep*(dtsums[2]-x + dtsums[0]+1 + dtsums[1]+1))
+        else:
+            return R + A*np.exp(-E*(x-(dtsums[0]+1 + dtsums[1]+1 + dtsums[2]+1)))+B*np.exp(-Ep*(dtsums[3]-x+dtsums[0]+1 + dtsums[1]+1 + dtsums[2]+1))
+    var, Cov = curve_fit(fit, time_mask, newt[k,:],  p0 = [0,0,0], sigma = newsig, absolute_sigma = True, maxfev = 5000)
+    hT.append(-var[0]*L*MD*hp/np.pi)
+    wtab.append(w)
+    
+os.chdir('/Users/melissafaur/Desktop/Data_analysis/Results')
+
+print('hT avg for mom2 :', np.array(hT).mean(), np.array(hT).std())
+
+np.savetxt('{name}-{mass}-{mom}'.format(name=file, mass=mass_in, mom=2), (hT, wtab, Mpitab, np.sqrt(2*MKtab**2 - Mpitab**2)))
+
+
+hT = []
+wtab = []
+
+file_ED = input('name of the file where we find the energy for D meson (mom3) : ')
+
+os.chdir('/Users/melissafaur/Desktop/mom1/Bootstrap')
+
+tab = np.loadtxt(file_ED)
+deltaED = tab[1:,9]-tab[1:,7]
+
+os.chdir('/Users/melissafaur/Desktop/mom1/mom3_avg123-4/chi2_{mass}'.format(mass=mass_in))
+
+
+tab = np.loadtxt('samples_total')
+sig = np.loadtxt('sample_sigma')
+
+newt = []
+newsig = []
+for k in range(5000):
+    newt.append(list(tab[k,time_mask]))
+newsig = sig[time_mask]
+tab.shape
+
+newt = np.array(newt)
+newsig = np.array(newsig)
+
+for k in tqdm(range(5000)):
+    E = deltaED[k]
+    Ep = deltaEB[k]
+    MB = MBtab[k]
+    MD = MDtab[k]
+    hp = hptab[k]
+    mom = np.sqrt(3)*2*np.pi/L
+    q2 = (MB - np.sqrt(MD**2 + mom**2))**2 - mom**2
+    w = (MB**2 + MD**2 - q2)/(2*MD*MB) #book HQphysics page 66
+    @np.vectorize
+    def fit(x, R,A,B):
+        if x in list(np.arange(dtsums[0]+1)[cut: -cut]):
+            return R + A*np.exp(-E*x)+B*np.exp(-Ep*(dtsums[0]-x))
+        elif x in list(np.arange(dtsums[1]+1)[cut: -cut] + dtsums[0]+1):
+            return R + A*np.exp(-E*(x-(dtsums[0]+1)))+B*np.exp(-Ep*(dtsums[1]-x + dtsums[0]+1))
+        elif x in list(np.arange(dtsums[2]+1)[cut: -cut] + dtsums[0]+1 + dtsums[1]+1):
+            return R + A*np.exp(-Ep*(x-(dtsums[0]+1 + dtsums[1]+1)))+B*np.exp(-Ep*(dtsums[2]-x + dtsums[0]+1 + dtsums[1]+1))
+        else:
+            return R + A*np.exp(-E*(x-(dtsums[0]+1 + dtsums[1]+1 + dtsums[2]+1)))+B*np.exp(-Ep*(dtsums[3]-x+dtsums[0]+1 + dtsums[1]+1 + dtsums[2]+1))
+    var, Cov = curve_fit(fit, time_mask, newt[k,:],  p0 = [0,0,0], sigma = newsig, absolute_sigma = True, maxfev = 5000)
+    hT.append(-var[0]*L*MD*hp/np.pi)
+    wtab.append(w)
+
+os.chdir('/Users/melissafaur/Desktop/Data_analysis/Results')
+
+print('hT avg for mom3 :', np.array(hT).mean(), np.array(hT).std())
+
+np.savetxt('{name}-{mass}-{mom}'.format(name=file, mass=mass_in, mom=3), (hT, wtab, Mpitab, np.sqrt(2*MKtab**2 - Mpitab**2)))
+
+file_ED = input('name of the file where we find the energy for D meson (mom5) : ')
+
+
+hT =[]
+wtab = []
+
+os.chdir('/Users/melissafaur/Desktop/mom1/Bootstrap')
+
+tab = np.loadtxt(file_ED)
+deltaED = tab[1:,9]-tab[1:,7]
+
+os.chdir('/Users/melissafaur/Desktop/mom1/mom4_avg123-4/chi2_{mass}'.format(mass=mass_in))
+
+
+tab = np.loadtxt('samples_total')
+sig = np.loadtxt('sample_sigma')
+
+newt = []
+newsig = []
+for k in range(5000):
+    newt.append(list(tab[k,time_mask]))
+newsig = sig[time_mask]
+tab.shape
+
+newt = np.array(newt)
+newsig = np.array(newsig)
+
+for k in tqdm(range(5000)):
+    E = deltaED[k]
+    Ep = deltaEB[k]
+    MB = MBtab[k]
+    MD =  MDtab[k]
+    hp = hptab[k]
+    mom = 2*2*np.pi/L
+    q2 = (MB - np.sqrt(MD**2 + mom**2))**2 - mom**2
+    w = (MB**2 + MD**2 - q2)/(2*MD*MB) #book HQphysics page 66
+    @np.vectorize
+    def fit(x, R,A,B):
+        if x in list(np.arange(dtsums[0]+1)[cut: -cut]):
+            return R + A*np.exp(-E*x)+B*np.exp(-Ep*(dtsums[0]-x))
+        elif x in list(np.arange(dtsums[1]+1)[cut: -cut] + dtsums[0]+1):
+            return R + A*np.exp(-E*(x-(dtsums[0]+1)))+B*np.exp(-Ep*(dtsums[1]-x + dtsums[0]+1))
+        elif x in list(np.arange(dtsums[2]+1)[cut: -cut] + dtsums[0]+1 + dtsums[1]+1):
+            return R + A*np.exp(-Ep*(x-(dtsums[0]+1 + dtsums[1]+1)))+B*np.exp(-Ep*(dtsums[2]-x + dtsums[0]+1 + dtsums[1]+1))
+        else:
+            return R + A*np.exp(-E*(x-(dtsums[0]+1 + dtsums[1]+1 + dtsums[2]+1)))+B*np.exp(-Ep*(dtsums[3]-x+dtsums[0]+1 + dtsums[1]+1 + dtsums[2]+1))
+    var, Cov = curve_fit(fit, time_mask, newt[k,:],  p0 = [0,0,0], sigma = newsig, absolute_sigma = True, maxfev = 5000)
+    hT.append(-var[0]*L*MD*hp/(np.pi*2))
+    wtab.append(w)
+
+os.chdir('/Users/melissafaur/Desktop/Data_analysis/Results')
+
+print('hT avg for mom4 :', np.array(hT).mean(), np.array(hT).std())
+
+np.savetxt('{name}-{mass}-{mom}'.format(name=file, mass=mass_in, mom=4), (hT, wtab, Mpitab, np.sqrt(2*MKtab**2 - Mpitab**2)))
+
+print('files saved under format : 4 lines * 5000 rows, 1 : hT, 2: w, 3: Mpi, 4: Metas')
+
+os.system('umount -f /Users/melissafaur/Desktop/mom1')
