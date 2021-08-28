@@ -1,3 +1,5 @@
+# FIRST ALGORITHM : to create the R2 bootstrap samples
+
 import numpy as np
 import os
 import readcorr as r #library I created to generate the correlators bootstrap samples
@@ -21,35 +23,35 @@ def matrix_print(tab):# to print 2D array in terminal
 
 pseudo = np.loadtxt('pseudo_clean').astype(int) #pseudo random number generator
 
-dtsum = input('Enter the dtsum value :')
+dtsum = input('Enter the dtsum value :') #dtsum is the total source-sink separation. Here we compute the R2 bootstrap sample of one sub data set, for all D momentum norm, but for one dtsum
 
-name_list= ['mom1_avg123-4', 'mom2_avg123-4', 'mom3_avg123-4', 'mom4_avg123-4'] #corresponding to the 4 momentum norm values
-
+name_list= ['mom1_avg123-4', 'mom2_avg123-4', 'mom3_avg123-4', 'mom4_avg123-4'] #corresponding to the 4 momentum norm values for one sub sub data set
+#Note that the momentum norm called "i" (i = 1,2,3 or 4) corresponds to lattice momentum norm sqrt(i)*2 pi / L (with L the lattice spatial size)
 
 mom_list= [["+1+0+0_+0+0+0_-1+0+0", "-1+0+0_+0+0+0_+1+0+0","+0+1+0_+0+0+0_+0-1+0", "+0-1+0_+0+0+0_+0+1+0", "+0+0+1_+0+0+0_+0+0-1", "+0+0-1_+0+0+0_+0+0+1"], ["+1+0+1_+0+0+0_-1+0-1", "-1+0+1_+0+0+0_+1+0-1", "+1+0-1_+0+0+0_-1+0+1","-1+0-1_+0+0+0_+1+0+1", "+1+1+0_+0+0+0_-1-1+0" , "-1+1+0_+0+0+0_+1-1+0", "+1-1+0_+0+0+0_-1+1+0" , "-1-1+0_+0+0+0_+1+1+0" ,  "+0+1+1_+0+0+0_+0-1-1", "+0-1+1_+0+0+0_+0+1-1", "+0-1-1_+0+0+0_+0+1+1", "+0+1-1_+0+0+0_+0-1+1"] , ["+1+1+1_+0+0+0_-1-1-1",  "+1+1-1_+0+0+0_-1-1+1", "+1-1+1_+0+0+0_-1+1-1", "-1+1+1_+0+0+0_+1-1-1", "+1-1-1_+0+0+0_-1+1+1", "-1-1+1_+0+0+0_+1+1-1",  "-1+1-1_+0+0+0_+1-1+1", "-1-1-1_+0+0+0_+1+1+1"], [ "+2+0+0_+0+0+0_-2+0+0", "-2+0+0_+0+0+0_+2+0+0","+0+2+0_+0+0+0_+0-2+0", "+0-2+0_+0+0+0_+0+2+0", "+0+0+2_+0+0+0_+0+0-2", "+0+0-2_+0+0+0_+0+0+2"]]
 
 
 tensor = ['T14', 'T24', 'T34']
 
-mass_list = ['0.44037', '0.55046', '0.68808'] #in the case of the sub data set (4.17,mq = 0.0070), here are the bottom quark mass
+mass_list = ['0.44037', '0.55046', '0.68808'] #in the case of the sub data set (beta = 4.17, mq = 0.0070), here are the bottom quark masses
 
-mondico = dict() # I create this dictionary to store the bootstrap samples of the correlators for different momenta and bottom mass (that will be the key in the dictionnary in the format 'mass_momentum')
+mondico = dict() # I create this dictionary to store the bootstrap samples of the correlators for different momenta and bottom mass (which will be the key of the dictionnary in the format 'mass_momentum')
 
-os.chdir('/home/mfaur/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400/tsrc00/2pt/DD')
+os.chdir('/home/mfaur/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400/tsrc00/2pt/DD') #I navigate in the workstation to get to the folder where the D meson correlators are stored
 
 
 file = 'msn_2pt_pp_m0.44037_0.01200_theta+0.0000+0.0000+0.0000_+0.0000+0.0000+0.0000_mom+0+0+0_smr10_{id}'
 end = r.generate_end_short()
 DD_0_re, DD_0_im = r.oneformat(file, end, dtsum+1)
 DD_0 = DD_0_re + 1j*DD_0_im
-# these four command lines allow to extract the bootstrap samples of the D decay two point correlator
+# these four command lines allow me to extract the bootstrap samples of the D decay two point correlator for one momentum vector (here +0+0+0)
 
 
 
 os.chdir('/home/mfaur/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400/tsrc00/3pt/dtsum{dir1}/V4'.format(dir1 = dtsum))
  
 for k in range(len(mass_list)):
-# For each bottom quark mass we extract the D to B meson decay three point correlator bootstrap samples
+# For each bottom quark mass we extract the D to B meson decay three point correlator bootstrap samples, the D momentum is 0 here
     file = 'msn_3pt_p_p_v4_m0.01200_{mass}_0.44037_theta+0.0000+0.0000+0.0000_+0.0000+0.0000+0.0000_+0.0000+0.0000+0.0000_mom+0+0+0_+0+0+0_+0+0+0'.format(mass= mass_list[k])
     file = file +'_smr11_{id}'
     D2B_0_re, D2B_0_im = r.oneformat_3pt_thin(file, end, dtsum)
@@ -59,7 +61,7 @@ for k in range(len(mass_list)):
 
 
 for i in range (len(mom_list)):
-# For each momentum and bottom quark mass we extract the D decay two point correlator bootstrap samples and the D to B decay three point correlator bootstrap samples.
+# For each non zero D momentum and bottom quark mass we extract the D decay two point correlator bootstrap samples and the D to B decay three point correlator bootstrap samples.
     DD_p = 0
     for k in range(len(mass_list)):
         mondico['{n}'.format(n = mass_list[k][2])] = 0
@@ -97,7 +99,7 @@ for i in range (len(mom_list)):
 
 
     for l in range(len(mass_list)):
-#for each bottom mass, we compute the ratio R2
+    #for each bottom mass, we compute the ratio R2
         current = mondico['{n}'.format(n = mass_list[l][2])]
         current0 = mondico['{n}_0'.format(n = mass_list[l][2])]
         current = current/(len(mom_list[i])*len(tensor))
@@ -113,6 +115,7 @@ for i in range (len(mom_list)):
 
         try :
             os.mkdir('{dir2}'.format(dir2 = name_list[i]))
+            #I create a folder to store the R2 bootstrap samples for the inputted dtsum
         except:
             print('already exists - {dir2}'.format(dir2 = name_list[i]))
 
@@ -131,18 +134,20 @@ for i in range (len(mom_list)):
         if not(CovM.isPD(M5)):
             M5 = CovM.nearestPD(M5)
         M5, N5_cho = CovM.inverse(M5, dtsum)
+        #I compute here the covariance matrix of the R2 bootstrap samples real part
+        # I wanted to use it in fit functions, but in the end I just used standard errors.
 
         print('True if the matrix is correctly inversed using Cholesky decomposition - M : ', np.allclose(np.dot(N5_cho, M5), np.eye(dtsum+1)))
-
 
 
         MI5 = CovM.CovM_simple(R_c.imag, dtsum +1, 5000)
         if not(CovM.isPD(MI5)):
             MI5 = CovM.nearestPD(MI5)
         MI5, NI5_cho = CovM.inverse(MI5, dtsum)
-
+        #I compute here the covariance matrix of the R2 bootstrap samples imaginary part
+        # I wanted to use it in fit functions, but in the end I just used standard errors.
+        
         print('True if the matrix is correctly inversed using Cholesky decomposition - MI : ', np.allclose(np.dot(NI5_cho, MI5), np.eye(dtsum+1)))
-
 
         try :
             os.mkdir('chi2_{n}'.format(n=mass_list[l][2]))
@@ -151,6 +156,9 @@ for i in range (len(mom_list)):
 
 
         os.chdir('/xwork18/scqcd/mfaur/NewSigma/R/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400/dtsum{dir1}/{dir2}/chi2_{n}'.format(dir1 = dtsum, dir2 = name_list[i], n = mass_list[l][2]))
+
+        #Finally, I save the 5000 R2 bootstrap samples generated for a given bottom mass and momentum norm for the sub data set (beta = 4.17, mq=0.0070)
+        #Thanks to the loops over the bottom masses and the momentum norms, I generate with this algorithm all the R2 bootstrap sample for one sub data set and one dtsum.
 
         np.savetxt('sample_sigma', sigmaR)
 
@@ -171,8 +179,8 @@ for i in range (len(mom_list)):
 
         os.chdir('/xwork18/scqcd/mfaur/NewSigma/R/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400')
 
-
-#ultimate code mix, to create the dtsum mixed ratio files that will be fitted
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+# SECOND ALGORITHM : to create the dtsum mixed ratio samples
 
 import numpy as np
 import os
@@ -193,21 +201,18 @@ def matrix_print(tab):#1D array
         array_print(tab[l,:])
     print(']')
 
-mass = [4,5,6]
-
-
+mass = [4,5,6] #keys referring to the masses 0.44037, 0.55046, 0.68808
 
 tab_cut = input('tuples of slicing values to cut the samples on, for the real part // dtsum :')
 tab_cut_im = input('tuples of slicing values to cut the samples on, for the imaginary part // dtsum :')
 #example [(1, -1), (1, -1), (1, -1), (1, -1)]
-#In our case, we cut the time range by removing the first and last 6 points for this data set
-# For other data set, we remove the same quantity of points, weighted by the lattice spacing
+#I don't use this tab_cut in my final analysis
+
 
 name = input('Name of the file to put the results in (mix) :')
 
-#cov_bool = input('Do you want to compute cov chi2 : (0 or 1)')
 
-dtsum = np.array([12, 16, 22, 26])
+dtsum = np.array([12, 16, 22, 26]) # We will glue together for each bootstrap sample numbers the corresponding 4 bootstrap samples with these 4 different dtsums
 
 
 os.chdir('/xwork18/scqcd/mfaur/NewSigma/R/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400/mix')
@@ -224,7 +229,6 @@ for m in mass:
     os.chdir('/xwork18/scqcd/mfaur/NewSigma/R/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400/mix/{mom}'.format(mom=name))
     try:
         os.mkdir('chi2_{n}'.format(n=m))
-        #print('file created')
     except:
         print('chi2_{n} already exists'.format(n=m))
 
@@ -233,7 +237,7 @@ for m in mass:
     new_R = []
     new_R_im = []
 
-#We run through the bootstrap samples to assemble the different dtsum ratio into one file, and to compute the standard deviation to the 5000 samples
+#We run through the bootstrap samples to assemble the different dtsum ratio samples with the same bootstrap index into one file, and to compute the standard deviation to the new 5000 samples
 
     for k in range(5000):
         new_sample = []
@@ -242,7 +246,7 @@ for m in mass:
         sigma_im = []
         for i in range(len(dtsum)):
             os.chdir('/xwork18/scqcd/mfaur/NewSigma/R/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400/dtsum{dt_in}/{mom}/chi2_{n}'.format(dt_in = dtsum[i], mom = name, n = m))
-            if k == 0 : #extract all the sigmas
+            if k == 0 : 
                 print(os.getcwd())
                 file= 'sample_sigma'
                 sample = np.loadtxt(file)
@@ -278,22 +282,20 @@ for m in mass:
 
 #We compute the covariance matrix to the bootstrap samples if we want to use it in the chi2 minimization algorithms
     M = CovM.CovM_simple(new_R, dt, 5000)
-    #matrix_print(M)
     if not(CovM.isPD(M)):
         M2 = CovM.nearestPD(M)
     M3, N_cho = CovM.inverse(M2, dtsum = dt-1)
-    #matrix_print(M)
     print('True if the matrix is correctly inversed using Cholesky decomposition - M: ', np.allclose(np.dot(N_cho, M3), np.eye(dt)))
 
     MI = CovM.CovM_simple(new_R_im, dt_im, 5000)
-    #matrix_print(MI)
     if not(CovM.isPD(MI)):
         MI2 = CovM.nearestPD(MI)
     MI3, NI_cho = CovM.inverse(MI2, dtsum = dt_im-1)
-    #matrix_print(MI)
     print('True if the matrix is correctly inversed using Cholesky decomposition - MI : ', np.allclose(np.dot(NI_cho, MI3), np.eye(dt_im)))
 
     os.chdir('/xwork18/scqcd/mfaur/NewSigma/R/SymDW_sHtTanh_b2.0_smr3_32x64x12_b4.17_M1.00_mud0.0120_ms0.0400/mix/{mom}/chi2_{n}'.format(mom = name, n=m))
+
+#We save the new bootstrap samples for the sub data set in question. They no longer depend on dtsum
 
     np.savetxt('sample_cov', M3.flatten())
 
@@ -307,21 +309,22 @@ for m in mass:
 
     np.savetxt('sample_cov_inv_im', NI_cho.flatten())
 
-  
-#chi2 on python
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+#THIRD ALGORITHM : Fitting the bootstrap sample of one sub sub data set to get the R2 groundstate contribution
 
 
-#We compute hT for a given data set + a given mb mass
 
 import os
 import numpy as np
 from tqdm import tqdm
 from scipy.optimize import curve_fit
 
+#I input all this information here to be able to navigate in my storage files
 file = input('Data set name : ')
 file_ED = input('name of the file where we find the energy for D meson (mom1) : ')
 file_EB = input('name of the file where we find the energy for B meson  : ')
-
 file_hp = input('name of the file where we find h+(w=1) : ')
 mass_in = int(input('mass name : '))
 L = int(input('L value : '))
@@ -331,15 +334,14 @@ dtsum3 = input('dtsum3 : ')
 dtsum4 = input('dtsum4 : ')
 
 dtsums = [int(dtsum1), int(dtsum2), int(dtsum3), int(dtsum4)]
-cut = input('cut : ')
-cut = int(cut)
+cut = int(input('cut : '))
+#In the case of (beta = 4.17, mq = 0.0070), we cut the time range by removing the first and last 6 points for this data set : cut = 6
+# For other data set, we remove the same quantity of points, weighted by the lattice spacing
 
 os.system('sshfs mfaur@scbc2fe.kek.jp:/xwork18/scqcd/mfaur/NewSigma/R/{dataset}/mix /Users/melissafaur/Desktop/mom1'.format(dataset = file))
 
-
 os.chdir('/Users/melissafaur/Desktop/mom1/Bootstrap')
 
-#os.system('ls')
 
 #In the sub sub data set in question, for a given momentum (here norm "1") we upload in the code the energy values of the D and B meson from files at disposal in the work station, created by T. Kaneko
 
@@ -383,7 +385,7 @@ hT = []
 
 wtab = []
 
-# We fit all the bootstrap samples with the same function, while carefully considering the right bootstrap energy values
+# We fit all the bootstrap samples for the given sub sub data set and momentum norm "1" with the same function, while carefully considering the right bootstrap energy values
     
 for k in tqdm(range(5000)):
     E = deltaED[k]
@@ -405,16 +407,18 @@ for k in tqdm(range(5000)):
         else:
             return R + A*np.exp(-E*(x-(dtsums[0]+1 + dtsums[1]+1 + dtsums[2]+1)))+B*np.exp(-Ep*(dtsums[3]-x+dtsums[0]+1 + dtsums[1]+1 + dtsums[2]+1))
     var, Cov = curve_fit(fit, time_mask, newt[k,:],  p0 = [0,0,0], sigma = newsig, absolute_sigma = True, maxfev = 5000)
-    hT.append(-var[0]*L*MD*hp/np.pi)
+    hT.append(-var[0]*L*MD*hp/np.pi) #we multiply the groundstate R2 (var[0]) by the appropriate coefficient to obtain a tensor form factor value
     wtab.append(w)
 
 print('hT avg value for mom1 :', np.array(hT).mean(), np.array(hT).std())
     
 os.chdir('/Users/melissafaur/Desktop/Data_analysis/Results')
 
-
+# we save the obtained tensor form factor bootstrap samples in the 'Results' file
 np.savetxt('{name}-{mass}-{mom}'.format(name=file, mass=mass_in, mom=1), (hT, wtab, Mpitab, np.sqrt(2*MKtab**2 - Mpitab**2)))
 
+
+#We repeat the procedure for momentum norm "2"
 
 hT = []
 
@@ -472,8 +476,10 @@ print('hT avg for mom2 :', np.array(hT).mean(), np.array(hT).std())
 
 np.savetxt('{name}-{mass}-{mom}'.format(name=file, mass=mass_in, mom=2), (hT, wtab, Mpitab, np.sqrt(2*MKtab**2 - Mpitab**2)))
 
+#We repeat the procedure for momentum norm "3"
 
 hT = []
+
 wtab = []
 
 file_ED = input('name of the file where we find the energy for D meson (mom3) : ')
@@ -530,8 +536,10 @@ np.savetxt('{name}-{mass}-{mom}'.format(name=file, mass=mass_in, mom=3), (hT, wt
 
 file_ED = input('name of the file where we find the energy for D meson (mom5) : ')
 
+#We repeat the procedure for momentum norm "4"
 
 hT =[]
+
 wtab = []
 
 os.chdir('/Users/melissafaur/Desktop/mom1/Bootstrap')
